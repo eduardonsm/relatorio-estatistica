@@ -173,13 +173,19 @@ A análise dos coeficientes revela que, embora o modelo global seja potente, a m
 report(modelo)
 ```
 
-Com base o resultado da função report(modelo) e summary(modelo), podemos testar a remoção das variáveis `salario` e `tempo_empresa`, já que elas tem uma alta colinearidade e um baixo nível de significancia
+Com base nos diagnósticos de multicolinearidade (VIF \> 40) e na ausência de significância estatística individual ($p > 0,05$), optou-se pela remoção das variáveis `salario` e `tempo_empresa`. Essa decisão é corroborada pela redução nos critérios de informação (AIC e BIC - apresentados mais adiante), indicando que o modelo ajustado é mais parcimonioso e estatisticamente preferível.
 
 ```{r}
 modelo_ajustado <- update(modelo, . ~ . -salario - tempo_empresa)
 
 summary(modelo_ajustado)
 ```
+
+#### **3. Análise dos Resíduos e Ajuste Global**
+
+-   **R² Ajustado (0.5052):** O seu modelo explica cerca de **50,5%** da variação da satisfação. Para dados de comportamento humano (RH), esse é um valor muito bom.
+
+-   **Estatística F:** O p-valor global é $< 2.2e-16$, o que confirma que, apesar de algumas variáveis serem individualmente ruins no momento, o modelo como um todo é muito superior a um palpite aleatório.
 
 ```{r}
 vif(modelo_ajustado)
@@ -200,3 +206,5 @@ BIC(modelo)
 ```{r}
 BIC(modelo_ajustado)
 ```
+
+## 6. SELEÇÃO DO MELHOR MODELO
