@@ -5,7 +5,7 @@ format: pdf
 editor: visual
 ---
 
-![](projetoEst/images/UFCG_logo_png.png){fig-align="center" width="100" height="100"}
+![](images/UFCG_logo_png.png){fig-align="center" width="150" height="150"}
 
 # **Universidade Federal de Campina Grande (UFCG)**
 
@@ -21,7 +21,24 @@ O presente trabalho apresenta uma análise estatística aplicada à gestão de r
 
 Através de técnicas de análise exploratória, ajustes de modelos de regressão linear múltipla (MRLM) e testes rigorosos de pressupostos, busca-se compreender quais fatores realmente impactam a felicidade no trabalho. Além da modelagem, o estudo fornece previsões pontuais e intervalares, oferecendo subsídios para que a organização possa priorizar intervenções no ambiente laboral com base em evidências estatísticas.
 
+```{r}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(readxl)
+
+dados <- read_excel("~/projetoEst/DadosSatisfacao.xlsx")
+```
+
 ## **2. DESCRIÇÃO DA BASE DE DADOS**
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(skimr)
+
+skim(dados)
+```
 
 A base de dados utilizada neste estudo é proveniente de registros internos de uma organização, consolidada no arquivo `DadosSatisfacao.xlsx`. Após o processo de leitura e limpeza inicial, verificou-se que o conjunto contém 250 observações e 11 variáveis.
 
@@ -51,20 +68,29 @@ Abaixo, detalhamos as variáveis que compõem o estudo:
 
 A etapa de análise exploratória, detalhada a seguir, incluirá um resumo estatístico descritivo com medidas de tendência central, dispersão e quartis, fornecendo a visão geral necessária para a validação dos modelos de regressão.
 
+## **3. ANÁLISE EXPLORATÓRIA DE DADOS**
+
+```{r}
+dados <- read_excel("~/projetoEst/DadosSatisfacao.xlsx") %>% na.omit
+```
+
+Nesta etapa, realizamos uma inspeção detalhada para garantir a integridade dos dados antes da modelagem. O foco inicial foi a identificação de inconsistências que pudessem enviesar os resultados estatísticos.
+
+```{r}
+library(dplyr)
+
+glimpse(dados)
+```
+
 ```{r}
 #| echo: false
 #| message: false
 #| warning: false
 
 library(skimr)
-skim(dados) %>% 
-  yank("numeric") %>% 
-  knitr::kable(caption = "Resumo Estatístico das Variáveis Numéricas")
+
+skim(dados)
 ```
-
-## **3. ANÁLISE EXPLORATÓRIA DE DADOS**
-
-Nesta etapa, realizamos uma inspeção detalhada para garantir a integridade dos dados antes da modelagem. O foco inicial foi a identificação de inconsistências que pudessem enviesar os resultados estatísticos.
 
 ### **3.1. Tratamento de Dados Ausentes**
 
@@ -72,48 +98,43 @@ Ao carregar a base, identificou-se a presença de dados faltantes (NAs), especif
 
 ### **3.2. Identificação de Outliers**
 
-Para detectar valores atípicos, aplicamos o método visual de box-plots em variáveis críticas, como a satisfação (variável resposta) e o salário.
+Para detectar valores atípicos, aplicamos o método visual de box-plots em variáveis categóricas, como nivel_cargo, setor e gênero.
 
 ```{r}
-#| label: boxplots-exploratoria
-#| fig-cap: "Análise de Outliers e Distribuição"
-#| echo: false
+library(ggplot2)
 
-library(gridExtra)
-
-p1 <- ggplot(dados, aes(y = satisfacao)) + 
-  geom_boxplot(fill = "steelblue", alpha = 0.7) + 
-  labs(title = "Boxplot: Satisfação") + theme_minimal()
-
-p2 <- ggplot(dados, aes(y = salario)) + 
-  geom_boxplot(fill = "darkgreen", alpha = 0.7) + 
-  labs(title = "Boxplot: Salário") + theme_minimal()
-
-grid.arrange(p1, p2, ncol = 2)
+ggplot(dados, aes (x = nivel_cargo, y = satisfacao)) + geom_boxplot() + theme_minimal()
 ```
 
 ```{r}
-#| label: resumo-estatistico
-#| echo: false
+ggplot(dados, aes (x = setor, y = satisfacao)) + geom_boxplot() + theme_minimal()
+```
 
-# Usando a lógica da função customizada que você viu no outro relatório
-library(skimr)
+```{r}
+ggplot(dados, aes (x = genero, y = satisfacao)) + geom_boxplot() + theme_minimal()
+```
 
-my_skim <- skim_with(
-  numeric = sfl(
-    mean = ~mean(., na.rm = TRUE),
-    sd = ~sd(., na.rm = TRUE),
-    min = ~min(., na.rm = TRUE),
-    q1 = ~quantile(., 0.25, na.rm = TRUE),
-    median = ~median(., na.rm = TRUE),
-    q3 = ~quantile(., 0.75, na.rm = TRUE),
-    max = ~max(., na.rm = TRUE),
-    n_miss = ~sum(is.na(.))
-  ),
-  append = FALSE
-)
+A análise dos box-plots revela que a satisfação apresenta distribuições similares entre gêneros, porém com uma leve tendência de menor mediana no setor Comercial. Identificou-se um outlier isolado no setor Administrativo e no cargo Especialista, mas optou-se por mantê-lo na análise, pois representa um caso real de satisfação atípica que não compromete a robustez do modelo linear.
 
-my_skim(dados) %>% 
-  yank("numeric") %>% 
-  knitr::kable(digits = 2, caption = "Medidas Descritivas das Variáveis Numéricas")
+## 4. ANÁLISES UNI E BIVARIADAS E MULTICOLINEARIDADE
+
+Nesta seção, investigamos a distribuição individual das variáveis e como cada preditor se relaciona com o nível de satisfação. Além disso, avaliamos a existência de correlação entre as variáveis explicativas, um passo essencial para garantir a validade dos coeficientes da regressão.
+
+### 4.1. Análise de Correlação e Multicolinearidade
+
+Utilizou-se o coeficiente de correlação de Pearson para medir a força da associação linear entre as variáveis numéricas.
+
+```{r}
+library(corrplot)
+
+dados_num <- dados %>% select_if(is.numeric) %>% select(-id)
+
+corr_matrix <- cor(dados_num, use = "complete.obs")
+
+corrplot(corr_matrix, 
+         method = "color", 
+         addCoef.col = "black", 
+         number.cex = 0.7, 
+         tl.col = "black", 
+         tl.srt = 45)
 ```
