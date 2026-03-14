@@ -27,7 +27,7 @@ library(readxl)
 
 dados <- read_excel("DadosSatisfacao.xlsx")
 ```
-
+---
 ## **2. DESCRIÇÃO DA BASE DE DADOS**
 
 ```{r}
@@ -67,11 +67,13 @@ Abaixo, detalhamos as variáveis que compõem o estudo:
 -   **genero**: Identificação de gênero (Masculino/Feminino).
 
 A etapa de análise exploratória, detalhada a seguir, incluirá um resumo estatístico descritivo com medidas de tendência central, dispersão e quartis, fornecendo a visão geral necessária para a validação dos modelos de regressão.
-
+---
 ## **3. ANÁLISE EXPLORATÓRIA DE DADOS**
 
 ```{r}
-dados <- read_excel("~/projetoEst/DadosSatisfacao.xlsx") %>% na.omit
+library(dplyr)
+
+dados <- read_excel("DadosSatisfacao.xlsx") %>% na.omit
 ```
 
 Nesta etapa, realizamos uma inspeção detalhada para garantir a integridade dos dados antes da modelagem. O foco inicial foi a identificação de inconsistências que pudessem enviesar os resultados estatísticos.
@@ -115,7 +117,7 @@ ggplot(dados, aes (x = genero, y = satisfacao)) + geom_boxplot() + theme_minimal
 ```
 
 A análise dos box-plots revela que a satisfação apresenta distribuições similares entre gêneros, porém com uma leve tendência de menor mediana no setor Comercial. Identificou-se um outlier isolado no setor Administrativo e no cargo Especialista, mas optou-se por mantê-lo na análise, pois representa um caso real de satisfação atípica que não compromete a robustez do modelo linear.
-
+---
 ## 4. ANÁLISES UNI E BIVARIADAS E MULTICOLINEARIDADE
 
 Nesta seção, investigamos a distribuição individual das variáveis e como cada preditor se relaciona com o nível de satisfação. Além disso, avaliamos a existência de correlação entre as variáveis explicativas, um passo essencial para garantir a validade dos coeficientes da regressão.
@@ -156,12 +158,13 @@ Após a análise do resoltado do vif(modelo), verificamos que os valores de sal�
 -   **O que isso significa:** Geralmente, um VIF acima de 5 ou 10 indica que as variáveis estão "contaminadas" umas pelas outras.
 
 -   **Na prática:** O de correlação mostra uma correlação de 0.97 entre salário e tempo de empresa. Isso faz com que o modelo não consiga distinguir o efeito individual de cada uma. É por isso que o salário aparece como não significativo (p = 0.33) no summary, mesmo sendo algo que intuitivamente deveria afetar a satisfação.
-
+---
 ## 5. AJUSTE DO MODELO INICIAL E QUALIDADE DO AJUSTE
 
 Nesta etapa, ajustamos um Modelo de Regressão Linear Múltipla (MRLM) considerando todas as variáveis explicativas disponíveis no conjunto de dados. O objetivo é estabelecer uma linha de base para a comparação e diagnosticar a viabilidade técnica desta configuração inicial.
 
 ```{r}
+library(gtsummary)
 modelo %>% tbl_regression()
 ```
 
@@ -170,6 +173,7 @@ Ao observar a tabela de coeficientes, podemos tirar três conclusões fundamenta
 A análise dos coeficientes revela que, embora o modelo global seja potente, a multicolinearidade mascara a importância de variáveis financeiras. Enquanto `clima_org` e `treinamentos` apresentam forte significância ($p < 0,001$), o `salario` e o `tempo_empresa` perdem sua relevância estatística devido à alta correlação mútua.
 
 ```{r}
+library(easystats)
 report(modelo)
 ```
 
@@ -206,5 +210,3 @@ BIC(modelo)
 ```{r}
 BIC(modelo_ajustado)
 ```
-
-## 6. SELEÇÃO DO MELHOR MODELO
