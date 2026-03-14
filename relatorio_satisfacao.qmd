@@ -1,0 +1,119 @@
+---
+title: "Análise Estatística: Satisfação dos Colaboradores"
+author: "Eduardo Nogueira Severo Macêdo, Luis Alberto Viana Dantas e Maria Clara Augusta dos Santos"
+format: pdf
+editor: visual
+---
+
+![](projetoEst/images/UFCG_logo_png.png){fig-align="center" width="100" height="100"}
+
+# **Universidade Federal de Campina Grande (UFCG)**
+
+**Professor:** Gilberto Matos
+
+**Data:** 16/03/2026
+
+**Disciplina:** Estatística Aplicada
+
+## **1. INTRODUÇÃO**
+
+O presente trabalho apresenta uma análise estatística aplicada à gestão de recursos humanos e bem-estar organizacional, utilizando como base um conjunto de dados fornecido pela disciplina de Estatística Aplicada da Universidade Federal de Campina Grande (UFCG). O objetivo principal é investigar os determinantes da **satisfação dos colaboradores**, analisando a relação entre o nível de contentamento (variável resposta) e variáveis explicativas como remuneração, carga horária, investimentos em capacitação, percepção do clima organizacional e aspectos demográficos.
+
+Através de técnicas de análise exploratória, ajustes de modelos de regressão linear múltipla (MRLM) e testes rigorosos de pressupostos, busca-se compreender quais fatores realmente impactam a felicidade no trabalho. Além da modelagem, o estudo fornece previsões pontuais e intervalares, oferecendo subsídios para que a organização possa priorizar intervenções no ambiente laboral com base em evidências estatísticas.
+
+## **2. DESCRIÇÃO DA BASE DE DADOS**
+
+A base de dados utilizada neste estudo é proveniente de registros internos de uma organização, consolidada no arquivo `DadosSatisfacao.xlsx`. Após o processo de leitura e limpeza inicial, verificou-se que o conjunto contém 250 observações e 11 variáveis.
+
+Abaixo, detalhamos as variáveis que compõem o estudo:
+
+-   **satisfacao**: Nível de satisfação autorreferida (Variável Resposta, escala de 0 a 10).
+
+-   **salario**: Remuneração mensal bruta (Unidade: R\$).
+
+-   **nivel_cargo**: Categoria hierárquica (Analista, Assistente, Diretor, Especialista, Gerente).
+
+-   **tempo_empresa**: Tempo de serviço na organização (Unidade: Anos).
+
+-   **carga_horaria**: Jornada de trabalho semanal (Unidade: Horas).
+
+-   **treinamentos**: Quantidade de capacitações realizadas no último ano (Unidade: Contagem).
+
+-   **clima_org**: Índice de percepção do clima organizacional (Escala de 0 a 10).
+
+-   **distancia_km**: Distância entre a residência do colaborador e a empresa (Unidade: km).
+
+-   **idade**: Idade do colaborador (Unidade: Anos).
+
+-   **setor**: Área de atuação (Administrativo, Comercial, Operacional, TI).
+
+-   **genero**: Identificação de gênero (Masculino/Feminino).
+
+A etapa de análise exploratória, detalhada a seguir, incluirá um resumo estatístico descritivo com medidas de tendência central, dispersão e quartis, fornecendo a visão geral necessária para a validação dos modelos de regressão.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(skimr)
+skim(dados) %>% 
+  yank("numeric") %>% 
+  knitr::kable(caption = "Resumo Estatístico das Variáveis Numéricas")
+```
+
+## **3. ANÁLISE EXPLORATÓRIA DE DADOS**
+
+Nesta etapa, realizamos uma inspeção detalhada para garantir a integridade dos dados antes da modelagem. O foco inicial foi a identificação de inconsistências que pudessem enviesar os resultados estatísticos.
+
+### **3.1. Tratamento de Dados Ausentes**
+
+Ao carregar a base, identificou-se a presença de dados faltantes (NAs), especificamente na variável `salario`. Optou-se pela exclusão dessas observações (`na.omit`), resultando em um conjunto final de **209 observações**. Essa correção é necessária para garantir que todos os modelos comparados utilizem a mesma amostra, permitindo o uso de critérios como o AIC e BIC.
+
+### **3.2. Identificação de Outliers**
+
+Para detectar valores atípicos, aplicamos o método visual de box-plots em variáveis críticas, como a satisfação (variável resposta) e o salário.
+
+```{r}
+#| label: boxplots-exploratoria
+#| fig-cap: "Análise de Outliers e Distribuição"
+#| echo: false
+
+library(gridExtra)
+
+p1 <- ggplot(dados, aes(y = satisfacao)) + 
+  geom_boxplot(fill = "steelblue", alpha = 0.7) + 
+  labs(title = "Boxplot: Satisfação") + theme_minimal()
+
+p2 <- ggplot(dados, aes(y = salario)) + 
+  geom_boxplot(fill = "darkgreen", alpha = 0.7) + 
+  labs(title = "Boxplot: Salário") + theme_minimal()
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+```{r}
+#| label: resumo-estatistico
+#| echo: false
+
+# Usando a lógica da função customizada que você viu no outro relatório
+library(skimr)
+
+my_skim <- skim_with(
+  numeric = sfl(
+    mean = ~mean(., na.rm = TRUE),
+    sd = ~sd(., na.rm = TRUE),
+    min = ~min(., na.rm = TRUE),
+    q1 = ~quantile(., 0.25, na.rm = TRUE),
+    median = ~median(., na.rm = TRUE),
+    q3 = ~quantile(., 0.75, na.rm = TRUE),
+    max = ~max(., na.rm = TRUE),
+    n_miss = ~sum(is.na(.))
+  ),
+  append = FALSE
+)
+
+my_skim(dados) %>% 
+  yank("numeric") %>% 
+  knitr::kable(digits = 2, caption = "Medidas Descritivas das Variáveis Numéricas")
+```
