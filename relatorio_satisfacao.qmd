@@ -215,6 +215,11 @@ BIC(modelo_ajustado)
 
 ### Stepwise Selection
 
+```{r}
+intercept_only <- lm(satisfacao ~ 1, data=dados)
+all <- lm(satisfacao ~ ., data=dados)
+```
+
 O **método Backward** inicia com o modelo completo (todas as variáveis). A cada etapa, o algoritmo remove a variável que menos contribui para o ajuste, selecionando aquela que a exclusão resulta na maior redução do AIC (Akaike Information Criterion). O processo continua até que a remoção de qualquer variável adicional cause um aumento no AIC, indicando que o modelo atingiu seu equilíbrio ideal entre simplicidade e capacidade explicativa.
 
 ```{r}
@@ -242,11 +247,15 @@ both$anova
 -   Houve convergência entre os três métodos, resultando em um modelo que explica a satisfação dos colaboradores através do clima organizacional, investimentos em treinamento, remuneração, carga horária, setor de atuação e idade, apresentando o menor valor de AIC (-64.61).
 
 ```{r}
-plot(modelo)
+modelo_final <- lm(satisfacao ~ clima_org + treinamentos + salario  + carga_horaria + setor + idade, data = dados)
 ```
 
-```{r}
-modelo_final <- lm(satisfacao ~ clima_org + treinamentos + salario  + carga_horaria + setor + idade, data = dados)
+## 7. Análise de Resíduos
 
+A verificação dos pressupostos do Modelo de Regressão Linear Múltipla (MRLM) é uma etapa obrigatória para garantir que as estimativas obtidas sejam imparciais e que as inferências estatísticas, como os p-valores e intervalos de confiança, possuam validade científica.
+
+### 7.1 Checando pressupostos
+
+```{r}
 plot(modelo_final)
 ```
