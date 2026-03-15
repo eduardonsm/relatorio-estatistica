@@ -256,8 +256,96 @@ A verificação dos pressupostos do Modelo de Regressão Linear Múltipla (MRLM)
 
 ### 7.1 Checando pressupostos
 
+#### 7.1.1 modelo completo apenas para comparação visual
+
+```{r}
+plot(modelo)
+```
+
+#### 7.1.2 Sobre o modelo Selecionado
+
+-   **(Sobre o gráfico 1)** A análise do gráfico de Resíduos vs. Valores Ajustados permite verificar a validade da relação linear proposta pelo modelo selecionado. A distribuição dos resíduos de forma aleatória e equilibrada ao redor da linha horizontal zero indica que o modelo capturou adequadamente a estrutura dos dados, sem apresentar padrões sistemáticos ou curvas que sugerissem relações não lineares ocultas entre os preditores e a satisfação. No geral, não é possível observar muita diferença visualmente em relação ao modelo completo.
+
+-   **(Sobre o gráfico 2)** Para verificar se os erros do modelo seguem uma distribuição normal, utilizou-se o gráfico Q-Q (Quantil-Quantil). Esta ferramenta compara os quantis dos resíduos observados com os quantis esperados de uma distribuição normal teórica. No modelo ajustado, observa-se que os pontos se distribuem de forma alinhada sobre a bissetriz (linha reta), o que indica que os resíduos seguem plausivelmente uma distribuição normal. Essa conformidade visual confirma que as estimativas dos parâmetros e os testes de significância (p-valores) são confiáveis, permitindo a validação das inferências estatísticas realizadas sobre a satisfação dos colaboradores.
+
+-   **(Sobre o gráfico 3)** O gráfico Scale-Location foi utilizado para avaliar a suposição de variância constante dos resíduos (homocedasticidade). Diferente do gráfico de resíduos simples, este utiliza a raiz quadrada dos resíduos padronizados para revelar tendências de dispersão de forma mais clara. No modelo analisado, observa-se uma linha de tendência aproximadamente horizontal e pontos distribuídos de maneira aleatória ao longo dos intervalos dos valores ajustados. Esse padrão indica que a variabilidade dos erros não aumenta nem diminui sistematicamente em relação ao nível de satisfação previsto, confirmando a estabilidade do modelo e a precisão dos erros padrão calculados.
+
+-   **(Sobre o gráfico 4)** Observa-se que a linha de tendência permanece aproximadamente horizontal e centralizada. O ponto crucial da análise é que nenhuma observação ultrapassou os limites da Distância de Cook (as linhas tracejadas vermelhas que sequer aparecem nos cantos do gráfico por estarem fora da escala de risco). Os pontos como as observações 1, 103 e 203 apresentem resíduos padronizados mais elevados, embora aparentemente não possuam alavancagem suficiente para distorcer o modelo, cabe testar se a remoção dos outliers impactará nos nossos resultados.
+
 ```{r}
 plot(modelo_final)
+```
+
+##### 7.1.2.1 Segue distribuição normal?
+
+Comprovamos que o modelo selecionado segue uma distribuição normal.
+
+```{r}
+library(easystats)
+
+check_normality(modelo_final)
+```
+
+##### 7.1.2.2 Segue Homocesdasticidade?
+
+Agora, como a distribuição é normal, podemos verificar se os erros têm variância comum, ou seja, se há homocedasticidade.
+
+```{r}
+library(lmtest)
+bptest(modelo_final)
+```
+
+**Conclusão**: Como o valor p \> 0,05, então aceita-se a hipótese de homocedasticidade dos erros do modelo.
+
+No entanto, vamos verificar a heterocedasticidade para garantir nossa hipótese.
+
+```{r}
+check_heteroscedasticity(modelo_final)
+```
+
+**Conclusão**: Como o valor p = 0,05, não podemos descartar a heterocedasticidade.
+
+##### 7.1.2.3 Removendo os Outliers
+
+Uma possível causa para nosso resultado, podem ser os outliers observados nos gráficos que acabamos de analisar. portanto vamos retirá-los e verificar novamente a homocedasticidade e heterocedasticidade.
+
+```{r}
+
+dados_limpos <- dados[-c(1, 103, 203), ]
+
+modelo_sem_outliers <- lm(satisfacao ~ clima_org + treinamentos + salario + carga_horaria + setor, data = dados_limpos)
+
+check_heteroscedasticity(modelo_sem_outliers)
+bptest(modelo_final)
+```
+
+**Conclusão:** Após a remoção das observações atípicas 1, 103 e 203, a presença de heterocedasticidade foi formalmente descartada, conforme validado pelo teste de Breusch-Pagan ($p = 0,33$) e pela função check_heteroscedasticity() ($p > 0,05$).
+
+Embora os resíduos individuais apresentem dispersão natural, a linha de tendência permanece contida dentro da banda de confiança e mantém uma trajetória aproximadamente horizontal, o que valida o pressuposto de homogeneidade de variância.
+
+```{r}
+check_heteroscedasticity(modelo_sem_outliers) %>% plot()
+```
+
+```{r}
+check_outliers(modelo_final)
+
+```
+
+```{r}
+check_outliers(modelo_sem_outliers)
+```
+
+```{r}
+check_outliers(modelo_sem_outliers) %>% plot()
+```
+
+**Conclusão:** Os gráficos demonstram a segurança dos dados, pois não foram detectados pontos com influência excessiva que pudessem alterar os coeficientes, mantendo a integridade da análise para toda a amostra.
+
+##### 7.1.2.4 Visualização do modelo sem os Outliers
+
+```{r}
+plot(modelo_sem_outliers)
 ```
 
 ## 8 Previsões
@@ -280,8 +368,8 @@ glimpse(dados)
 ```{r}
 summary(dados)
 ```
-##8.1 Novas preditoras
-Agora, suponha que temos por objetivo prever os valores para o nivel de satisfação considerando os seguintes valores para as variáveis explicativas:
+### 8.1 Novas preditoras
+Agora, temos por objetivo prever os valores para o nivel de satisfação considerando os seguintes valores para as variáveis explicativas:
 ```{r}
 novas_preditoras <- data.frame(
   clima_org = c(4.5, 9.5), 
@@ -294,10 +382,10 @@ novas_preditoras <- data.frame(
 
 knitr::kable(novas_preditoras, align = "c", caption = "Perfis Fictícios para Previsão")
 ```
-##8.2 Intervalo de Confiança
+### 8.2 Intervalo de Confiança
 Um intervalo de confiança captura a incerteza em torno dos valores médios (valores esperados / o parâmetro média) preditos.
 ```{r}
-tab_IC <- predict(modelo_final, novas_preditoras,
+tab_IC <- predict(modelo_sem_outliers, novas_preditoras,
                   interval = "confidence")
 
 str(tab_IC)
@@ -311,10 +399,10 @@ names(tab_IC) <- c("Média_Prevista",
 
 tab_IC
 ```
-##8.3 Intervalo de Predição/Previsão
+### 8.3 Intervalo de Predição/Previsão
 Um intervalo de predição/previsão captura a incerteza em torno de um único valor não observado na base de dados e não em torno do seu valor médio/esperado o qual é obtido pelas variáveis preditoras observadas na base de dados.
 ```{r}
-tab_IP <- predict(modelo_final, novas_preditoras,
+tab_IP <- predict(modelo_sem_outliers, novas_preditoras,
                   interval = "prediction")
 
 tab_IP <- as.data.frame(tab_IP, row.names = NULL)
@@ -325,14 +413,23 @@ names(tab_IP) <- c("Valor_Previsto",
 
 tab_IP
 ```
-##8.4 Observações
-Para estas variáveis preditoras:
-```{r}
-novas_preditoras %>% knitr::kable()
-```
-Obteve-se os seguintes valores estimados (para o valor médio) e previstos (para o valor da variável):
+### 8.4 Interpretações Práticas das Previsões
+Para realizar as previsões, definimos dois conjuntos de valores para as variáveis explicativas $x_h = (x_{h1}, \dots, x_{hk})$, para $h = 1, 2$, representando dois perfis fictícios de colaboradores:
+
+Perfil 1 ($x_1$): Setor Operacional, 25 anos, Clima Organizacional de 4.5, 44h semanais, 1 treinamento e salário de R$ 2500.
+Perfil 2 ($x_2$): Setor de TI, 50 anos, Clima Organizacional de 9.5, 30h semanais, 5 treinamentos e salário de R$ 4100.
+
+Ao aplicar o modelo de regressão múltipla final (sem os outliers), obtivemos os seguintes resultados consolidados:
 ```{r}
 tab_IC_e_IP <- cbind.data.frame(tab_IC, tab_IP)
-
-tab_IC_e_IP %>% knitr::kable()
+tab_IC_e_IP %>% knitr::kable(digits = 2)
 ```
+(a) Valores médios esperados $E(Y_h|x_h)$ e Intervalos de Confiança.
+A previsão pontual para a média nos dá o melhor palpite do modelo para o comportamento geral de um grupo. O Intervalo de Confiança captura a incerteza em torno dessa média prevista.
+Para o Perfil 1 ($x_1$), a previsão pontual da satisfação média é de 2.329877.
+Na prática, significa que se avaliarmos todos os colaboradores da empresa com esse perfil, estima-se com 95% de confiança que a média de satisfação geral desse grupo estará entre 2.027816 e 2.631937. 
+Para o Perfil 2 ($x_2$), a previsão pontual da satisfação média é de 7.274948. Estima-se com 95% de confiança que a satisfação média de todos os colaboradores com essas características estará entre 6.723455 e 7.826441.
+
+(b) Observações individuais $Y_h$ e Intervalos de Predição. 
+A previsão pontual para uma observação individual é matematicamente idêntica à previsão da média. No entanto, o Intervalo de Predição captura a incerteza em torno de uma pessoa específica, o que o torna naturalmente mais amplo, pois o comportamento humano individual possui maior variância do que o comportamento médio de um grupo.
+Se a empresa contratar um único novo colaborador com as características do Perfil 1 ($x_1$), a previsão pontual para a satisfação dele é de 2.329877. Com 95% de confiança, prevemos que a nota exata que este único indivíduo vai estar dentro do intervalo de 0.7266436 a 3.933110. Da mesma forma, se for contratado um único colaborador com o Perfil 2 ($x_2$), a previsão pontual de sua satisfação é 7.274948, e seu intervalo de predição individual de 95% ficará entre 5.6066376 e 8.943259.
