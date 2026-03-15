@@ -259,3 +259,80 @@ A verificação dos pressupostos do Modelo de Regressão Linear Múltipla (MRLM)
 ```{r}
 plot(modelo_final)
 ```
+
+## 8 Previsões
+Para realizar previsões sobre valores para a variável resposta, recomenda-se o uso de valores para as variáveis explicativas dentro dos respectivos intervalos observados. Daí a importância de um breve resumo sobre os dados observados:
+```{r}
+glimpse(dados)
+```
+```{r}
+summary(dados)
+```
+```{r}
+# Transformas as Variáveis caracteres para fatores
+## para viabilizar a contagem das frequencias na função summary()
+
+dados$setor <- as.factor(dados$setor)
+```
+```{r}
+glimpse(dados)
+```
+```{r}
+summary(dados)
+```
+##8.1 Novas preditoras
+Agora, suponha que temos por objetivo prever os valores para o nivel de satisfação considerando os seguintes valores para as variáveis explicativas:
+```{r}
+novas_preditoras <- data.frame(
+  clima_org = c(4.5, 9.5), 
+  treinamentos = c(1, 5),              
+  salario = c(2500, 4100),         
+  carga_horaria = c(44, 30),          
+  setor = c("Operacional", "TI"),
+  idade = c(25, 50)                   
+)
+
+knitr::kable(novas_preditoras, align = "c", caption = "Perfis Fictícios para Previsão")
+```
+##8.2 Intervalo de Confiança
+Um intervalo de confiança captura a incerteza em torno dos valores médios (valores esperados / o parâmetro média) preditos.
+```{r}
+tab_IC <- predict(modelo_final, novas_preditoras,
+                  interval = "confidence")
+
+str(tab_IC)
+```
+```{r}
+tab_IC <- as.data.frame(tab_IC)
+
+names(tab_IC) <- c("Média_Prevista",
+                   "Lim.inf",
+                   "Lim.sup")
+
+tab_IC
+```
+##8.3 Intervalo de Predição/Previsão
+Um intervalo de predição/previsão captura a incerteza em torno de um único valor não observado na base de dados e não em torno do seu valor médio/esperado o qual é obtido pelas variáveis preditoras observadas na base de dados.
+```{r}
+tab_IP <- predict(modelo_final, novas_preditoras,
+                  interval = "prediction")
+
+tab_IP <- as.data.frame(tab_IP, row.names = NULL)
+
+names(tab_IP) <- c("Valor_Previsto",
+                   "Lim.inf_prev",
+                   "Lim.sup_prev")
+
+tab_IP
+```
+##8.4 Observações
+Para estas variáveis preditoras:
+```{r}
+novas_preditoras %>% knitr::kable()
+```
+Obteve-se os seguintes valores estimados (para o valor médio) e previstos (para o valor da variável):
+```{r}
+tab_IC_e_IP <- cbind.data.frame(tab_IC, tab_IP)
+
+tab_IC_e_IP %>% knitr::kable()
+```
