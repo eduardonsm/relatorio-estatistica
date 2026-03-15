@@ -256,6 +256,96 @@ A verificação dos pressupostos do Modelo de Regressão Linear Múltipla (MRLM)
 
 ### 7.1 Checando pressupostos
 
+#### 7.1.1 modelo completo apenas para comparação visual
+
+```{r}
+plot(modelo)
+```
+
+#### 7.1.2 Sobre o modelo Selecionado
+
+-   **(Sobre o gráfico 1)** A análise do gráfico de Resíduos vs. Valores Ajustados permite verificar a validade da relação linear proposta pelo modelo selecionado. A distribuição dos resíduos de forma aleatória e equilibrada ao redor da linha horizontal zero indica que o modelo capturou adequadamente a estrutura dos dados, sem apresentar padrões sistemáticos ou curvas que sugerissem relações não lineares ocultas entre os preditores e a satisfação. No geral, não é possível observar muita diferença visualmente em relação ao modelo completo.
+
+-   **(Sobre o gráfico 2)** Para verificar se os erros do modelo seguem uma distribuição normal, utilizou-se o gráfico Q-Q (Quantil-Quantil). Esta ferramenta compara os quantis dos resíduos observados com os quantis esperados de uma distribuição normal teórica. No modelo ajustado, observa-se que os pontos se distribuem de forma alinhada sobre a bissetriz (linha reta), o que indica que os resíduos seguem plausivelmente uma distribuição normal. Essa conformidade visual confirma que as estimativas dos parâmetros e os testes de significância (p-valores) são confiáveis, permitindo a validação das inferências estatísticas realizadas sobre a satisfação dos colaboradores.
+
+-   **(Sobre o gráfico 3)** O gráfico Scale-Location foi utilizado para avaliar a suposição de variância constante dos resíduos (homocedasticidade). Diferente do gráfico de resíduos simples, este utiliza a raiz quadrada dos resíduos padronizados para revelar tendências de dispersão de forma mais clara. No modelo analisado, observa-se uma linha de tendência aproximadamente horizontal e pontos distribuídos de maneira aleatória ao longo dos intervalos dos valores ajustados. Esse padrão indica que a variabilidade dos erros não aumenta nem diminui sistematicamente em relação ao nível de satisfação previsto, confirmando a estabilidade do modelo e a precisão dos erros padrão calculados.
+
+-   **(Sobre o gráfico 4)** Observa-se que a linha de tendência permanece aproximadamente horizontal e centralizada. O ponto crucial da análise é que nenhuma observação ultrapassou os limites da Distância de Cook (as linhas tracejadas vermelhas que sequer aparecem nos cantos do gráfico por estarem fora da escala de risco). Os pontos como as observações 1, 103 e 203 apresentem resíduos padronizados mais elevados, embora aparentemente não possuam alavancagem suficiente para distorcer o modelo, cabe testar se a remoção dos outliers impactará nos nossos resultados.
+
 ```{r}
 plot(modelo_final)
 ```
+
+##### 7.1.2.1 Segue distribuição normal?
+
+Comprovamos que o modelo selecionado segue uma distribuição normal.
+
+```{r}
+library(easystats)
+
+check_normality(modelo_final)
+```
+
+##### 7.1.2.2 Segue Homocesdasticidade?
+
+Agora, como a distribuição é normal, podemos verificar se os erros têm variância comum, ou seja, se há homocedasticidade.
+
+```{r}
+library(lmtest)
+bptest(modelo_final)
+```
+
+**Conclusão**: Como o valor p \> 0,05, então aceita-se a hipótese de homocedasticidade dos erros do modelo.
+
+No entanto, vamos verificar a heterocedasticidade para garantir nossa hipótese.
+
+```{r}
+check_heteroscedasticity(modelo_final)
+```
+
+**Conclusão**: Como o valor p = 0,05, não podemos descartar a heterocedasticidade.
+
+##### 7.1.2.3 Removendo os Outliers
+
+Uma possível causa para nosso resultado, podem ser os outliers observados nos gráficos que acabamos de analisar. portanto vamos retirá-los e verificar novamente a homocedasticidade e heterocedasticidade.
+
+```{r}
+
+dados_limpos <- dados[-c(1, 103, 203), ]
+
+modelo_sem_outliers <- lm(satisfacao ~ clima_org + treinamentos + salario + carga_horaria + setor, data = dados_limpos)
+
+check_heteroscedasticity(modelo_sem_outliers)
+bptest(modelo_final)
+```
+
+**Conclusão:** Após a remoção das observações atípicas 1, 103 e 203, a presença de heterocedasticidade foi formalmente descartada, conforme validado pelo teste de Breusch-Pagan ($p = 0,33$) e pela função check_heteroscedasticity() ($p > 0,05$).
+
+Embora os resíduos individuais apresentem dispersão natural, a linha de tendência permanece contida dentro da banda de confiança e mantém uma trajetória aproximadamente horizontal, o que valida o pressuposto de homogeneidade de variância.
+
+```{r}
+check_heteroscedasticity(modelo_sem_outliers) %>% plot()
+```
+
+```{r}
+check_outliers(modelo_final)
+
+```
+
+```{r}
+check_outliers(modelo_sem_outliers)
+```
+
+```{r}
+check_outliers(modelo_sem_outliers) %>% plot()
+```
+
+**Conclusão:** Os gráficos demonstram a segurança dos dados, pois não foram detectados pontos com influência excessiva que pudessem alterar os coeficientes, mantendo a integridade da análise para toda a amostra.
+
+##### 7.1.2.4 Visualização do modelo sem os Outliers
+
+```{r}
+plot(modelo_sem_outliers)
+```
+
+#####  
